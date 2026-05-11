@@ -1,7 +1,7 @@
 # ─────────────────────────────────────────
 #  config.py  —  여기만 수정하면 됩니다
 # ─────────────────────────────────────────
-import os
+import os, csv
 
 # BotFather에서 받은 토큰
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "여기에_봇토큰_입력")
