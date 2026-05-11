@@ -293,6 +293,20 @@ async def points_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     invite_count = await db.get_referral_count(user.id)
     total        = await db.get_total_participants()
     existing     = await db.get_user(user.id)  # 초기화 후 재조회
+
+    # ────────────────────────────────────────
+    #  [수정] 우대 대상자 전용 정보 추가
+    # ────────────────────────────────────────
+    loyalty_info = ""
+    if is_loyalty_user(user.username):
+        loyalty_info = (
+            "🌟 **특별 우대 대상자**\n"
+            "초대 마일스톤 보너스 적용 중:\n"
+            "• 1명(+100pt) / 3명(+300pt)\n"
+            "• 5명(+500pt) / 10명(+1000pt)\n"
+            "━━━━━━━━━━━━━━━\n"
+        )
+        
     await update.message.reply_text(
         f"📊 내 이벤트 현황\n"
         f"━━━━━━━━━━━━━━━\n"
