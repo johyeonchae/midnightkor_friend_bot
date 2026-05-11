@@ -118,11 +118,34 @@ async def get_total_participants() -> int:
 
 
 async def reset_points(user_id: int):
+    """본인 포인트 0으로 초기화 + 추천인 포인트 차감"""
+    from config import POINTS_REFER, POINTS_INVITED
     pool = await get_pool()
     async with pool.acquire() as conn:
-        await conn.execute(
-            "UPDATE users SET points = 0 WHERE user_id = $1", user_id
-        )
+        async with conn.transaction():
+            # 나를 추천한 사람(추천인)에게서 포인트 차감
+            referred_by = await conn.fetchval(
+                "SELECT referred_by FROM users WHERE user_id = $1", user_id
+            )
+            if referred_by:
+                await conn.execute(
+                    "UPDATE users SET points = GREATEST(0, points - $1) WHERE user_id = $2",
+                    POINTS_INVITED, referred_by,
+                )
+
+            # 내가 초대한 사람들의 추천 포인트도 차감 (내가 추천인인 경우)
+            await conn.execute(
+                """UPDATE users SET points = GREATEST(0, points - $1)
+                   WHERE user_id IN (
+                       SELECT invitee_id FROM referrals WHERE inviter_id = $2
+                   )""",
+                POINTS_REFER, user_id,
+            )
+
+            # 본인 포인트 0으로 초기화
+            await conn.execute(
+                "UPDATE users SET points = 0 WHERE user_id = $1", user_id
+            )
 
 
 async def get_leaderboard(limit: int = 10) -> list[dict]:
