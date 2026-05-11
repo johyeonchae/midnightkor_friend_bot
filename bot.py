@@ -132,31 +132,23 @@ async def _register_and_greet(user, context) -> int:
     full_name = user.full_name or str(user.id)
     await db.register_user(user.id, username, full_name)
 
-    # 메시지 1 — 이벤트 소개
+    # 메시지 1 — 이벤트 소개 + 환영
     await context.bot.send_message(
         user.id,
         f"{config.EVENT_TITLE}\n"
-        f"📅 이벤트 기간: {config.EVENT_PERIOD}\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"📅 기간: {config.EVENT_PERIOD}\n"
         f"🎁 리워드: {config.EVENT_REWARD}\n\n"
-        "지금부터 친구를 초대하고 포인트를 쌓아보세요!\n"
+        f"🎉 {full_name}님, 환영합니다!\n"
+        f"참여 보상으로 {config.POINTS_JOIN}포인트가 지급됐어요.\n\n"
+        f"친구를 초대하면 나와 친구 모두 {config.POINTS_INVITED}포인트씩 추가 지급됩니다.\n"
         "포인트는 이벤트 종료 후 리워드로 환산됩니다."
     )
 
-    # 메시지 2 — 추천 방식 안내
+    # 메시지 2 — 추천인 입력 요청
     await context.bot.send_message(
         user.id,
-        "👥 친구 한 명을 초대할 때마다\n"
-        f"나와 친구 모두 {config.POINTS_INVITED}포인트씩 지급됩니다!\n\n"
-        "아래에 나를 초대한 분의 @유저네임을 입력해주세요.\n"
-        "초대한 분이 없다면 /skip 을 입력하세요."
-    )
-
-    # 메시지 3 — 환영 + 포인트 지급
-    await context.bot.send_message(
-        user.id,
-        f"🌙 {full_name}님, Midnight Network에 오신 걸 환영합니다!\n"
-        f"🎉 참여 보상으로 {config.POINTS_JOIN}포인트가 지급됐어요.\n\n"
-        "나를 초대한 분의 @유저네임을 입력하면\n"
+        f"👥 나를 초대한 분의 @유저네임을 입력하면\n"
         f"👉 나에게 +{config.POINTS_REFER}포인트 추가\n"
         f"👉 초대한 분에게도 +{config.POINTS_INVITED}포인트 지급\n\n"
         "(예: @username)\n"
