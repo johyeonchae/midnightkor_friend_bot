@@ -27,3 +27,24 @@ POINTS_INVITED = 100   # 추천인에게 지급
 EVENT_TITLE  = "🌙 Midnight Network 한국 친구초대 이벤트"
 EVENT_PERIOD = "2026-05-11 ~ 2026-05-25 23:59 KST"
 EVENT_REWARD = "총 상금 3천만원 규모 미드나잇 코리아 포인트 캠페인"
+
+# [추가] 이전 이벤트 참여자 우대 보상 (명수: pt)
+LOYALTY_BONUS = {1: 100, 3: 300, 5: 500, 10: 1000}
+
+def load_loyalty_users():
+    """loyalty_list.csv에서 핸들을 읽어 set으로 반환"""
+    import csv
+    path = "loyalty_list.csv"
+    loyalty_set = set()
+    if os.path.exists(path):
+        with open(path, mode='r', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            for row in reader:
+                if row:
+                    # @ 제거 및 소문자 변환
+                    handle = row[0].strip().replace("@", "").lower()
+                    if handle: loyalty_set.add(handle)
+    return loyalty_set
+
+# 메모리에 우대 명단 로드
+LOYALTY_USERS = load_loyalty_users()
