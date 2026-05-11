@@ -286,9 +286,8 @@ async def ranking_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     medals = ["🥇", "🥈", "🥉"] + ["🏅"] * 7
     lines  = ["🏆 포인트 랭킹 TOP 10\n━━━━━━━━━━━━━━━"]
     for i, row in enumerate(board):
-        name = f"@{row['username']}" if row["username"] else row["full_name"]
         lines.append(
-            f"{medals[i]} {i+1}위  {name}  "
+            f"{medals[i]} {i+1}위  "
             f"{row['points']}pt  (초대 {row['invite_count']}명)"
         )
     await update.message.reply_text("\n".join(lines))
