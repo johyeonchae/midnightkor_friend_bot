@@ -19,9 +19,9 @@ CHANNEL_INFO = [
 ]
 
 # 포인트 설정
-POINTS_JOIN    = 10   # /start 기본 지급
-POINTS_REFER   = 10   # 추천인 입력 시 본인 추가 지급
-POINTS_INVITED = 10   # 추천인에게 지급
+POINTS_JOIN    = 100   # /start 기본 지급
+POINTS_REFER   = 100   # 추천인 입력 시 본인 추가 지급
+POINTS_INVITED = 100   # 추천인에게 지급
 
 # 이벤트 정보 (메시지에 표시됨)
 EVENT_TITLE  = "🌙 Midnight Network 한국 친구초대 이벤트"
