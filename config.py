@@ -14,8 +14,8 @@ REQUIRED_CHANNELS = [
 
 # 채널 표시 이름 + 링크
 CHANNEL_INFO = [
-    ("Midnight Network 한국 공지 채널",     "https://t.me/midnight_kor"),
-    ("Midnight Network 한국 공식 커뮤니티", "https://t.me/midnight_kor_chat"),
+    ("미드나잇 한국 공지 채널",     "https://t.me/midnight_kor"),
+    ("미드나잇 한국 공식 커뮤니티", "https://t.me/midnight_kor_chat"),
 ]
 
 # 포인트 설정
