@@ -310,11 +310,13 @@ async def points_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"📊 내 이벤트 현황\n"
         f"━━━━━━━━━━━━━━━\n"
+        f"{loyalty_info}" # 우대 정보 삽입
         f"👤 닉네임: {existing['full_name']}\n"
         f"🏆 보유 포인트: {existing['points']}pt\n"
         f"👥 초대한 친구: {invite_count}명\n"
         f"━━━━━━━━━━━━━━━\n"
-        f"📈 전체 참여자: {total}명"
+        f"📈 전체 참여자: {total}명",
+        parse_mode="Markdown"
     )
 
 
