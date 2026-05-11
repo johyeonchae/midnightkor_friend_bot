@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────
-#  bot.py  —  수정 불필요
+#  bot.py  —  최종본
 # ─────────────────────────────────────────
 import logging
 import aiosqlite
@@ -44,7 +44,6 @@ async def check_channels(user_id: int, bot) -> list[str]:
 
 
 def join_buttons() -> InlineKeyboardMarkup:
-    """채널 입장 버튼 + 확인 버튼"""
     buttons = [
         [InlineKeyboardButton(f"📢 {label}", url=url)]
         for label, url in config.CHANNEL_INFO
@@ -67,11 +66,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         invite_count = await db.get_referral_count(user.id)
         status = "완료 ✅" if existing["referral_done"] else "미입력"
         await update.message.reply_text(
-            f"이미 참여 중입니다, {existing['full_name']}님!\n\n"
-            f"🏆 내 포인트: {existing['points']}pt\n"
+            f"이미 참여 중이세요, {existing['full_name']}님 🌙\n\n"
+            f"🏆 보유 포인트: {existing['points']}pt\n"
             f"👥 초대한 친구: {invite_count}명\n"
             f"📎 추천인 입력: {status}\n\n"
-            "친구에게 내 @username을 알려 포인트를 함께 쌓으세요!"
+            "내 @username을 친구에게 알려 함께 포인트를 쌓아보세요!"
         )
         return ConversationHandler.END
 
@@ -89,7 +88,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         )
         return ConversationHandler.END
 
-    # 채널 가입 확인됨 → 등록 진행
     return await _register_and_greet(user, context)
 
 
@@ -101,18 +99,16 @@ async def verify_join_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     user  = query.from_user
     await query.answer()
 
-    # 이미 등록된 유저
     existing = await db.get_user(user.id)
     if existing:
         invite_count = await db.get_referral_count(user.id)
         await query.edit_message_text(
-            f"이미 참여 중입니다, {existing['full_name']}님!\n\n"
-            f"🏆 내 포인트: {existing['points']}pt\n"
+            f"이미 참여 중이세요, {existing['full_name']}님 🌙\n\n"
+            f"🏆 보유 포인트: {existing['points']}pt\n"
             f"👥 초대한 친구: {invite_count}명"
         )
         return ConversationHandler.END
 
-    # 채널 재확인
     not_joined = await check_channels(user.id, context.bot)
     if not_joined:
         not_joined_text = "\n".join(f"• {ch}" for ch in not_joined)
@@ -125,53 +121,47 @@ async def verify_join_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         )
         return ConversationHandler.END
 
-    # 모두 가입 확인 → 등록 진행
     await query.edit_message_text("✅ 채널 가입 확인됐습니다! 잠시만요...")
     return await _register_and_greet(user, context)
 
 
 # ────────────────────────────────────────
-#  등록 + 환영 메시지 공통 함수
+#  등록 + 환영 메시지
 # ────────────────────────────────────────
 async def _register_and_greet(user, context) -> int:
     username  = user.username or ""
     full_name = user.full_name or str(user.id)
     await db.register_user(user.id, username, full_name)
 
-    # 메시지 1 — 이벤트 소개 + 채널 링크
-    channel_lines = "\n".join(
-        f"{i+1}️⃣ {label}: {url}"
-        for i, (label, url) in enumerate(config.CHANNEL_INFO)
-    )
+    # 메시지 1 — 이벤트 소개
     await context.bot.send_message(
         user.id,
         f"{config.EVENT_TITLE}\n"
-        f"📅 기간: {config.EVENT_PERIOD}\n"
-        f"💰 보상: {config.EVENT_REWARD}\n\n"
-        f"✅ 아래 {len(config.CHANNEL_INFO)}개 채널에 모두 입장해 주세요!\n"
-        f"{channel_lines}\n\n"
-        f"{len(config.CHANNEL_INFO)}개 채널 입장 후 아래 절차를 따라주세요!"
+        f"📅 이벤트 기간: {config.EVENT_PERIOD}\n"
+        f"🎁 리워드: {config.EVENT_REWARD}\n\n"
+        "지금부터 친구를 초대하고 포인트를 쌓아보세요!\n"
+        "포인트는 이벤트 종료 후 리워드로 환산됩니다."
     )
 
     # 메시지 2 — 추천 방식 안내
     await context.bot.send_message(
         user.id,
-        f"{config.EVENT_TITLE}\n\n"
-        f"친구를 초대하면 나와 친구 모두 {config.POINTS_INVITED}포인트씩 지급됩니다.\n"
-        "포인트는 이벤트 종료 후 리워드로 환산됩니다.\n\n"
-        "👇 나를 이곳에 초대한 사람의 @유저네임을 입력해주세요!"
+        "👥 친구 한 명을 초대할 때마다\n"
+        f"나와 친구 모두 {config.POINTS_INVITED}포인트씩 지급됩니다!\n\n"
+        "아래에 나를 초대한 분의 @유저네임을 입력해주세요.\n"
+        "초대한 분이 없다면 /skip 을 입력하세요."
     )
 
     # 메시지 3 — 환영 + 포인트 지급
     await context.bot.send_message(
         user.id,
-        f"✅ 환영합니다, {full_name}님!\n"
-        f"🎉 기본 +{config.POINTS_JOIN} 포인트가 지급됐습니다!\n\n"
-        "나를 이곳에 초대한 사람의 텔레그램 @유저네임을 입력하면\n"
-        f"👉 나에게 +{config.POINTS_REFER}포인트 추가 지급\n"
-        f"👉 초대한 친구에게도 +{config.POINTS_INVITED}포인트 지급\n\n"
+        f"🌙 {full_name}님, Midnight Network에 오신 걸 환영합니다!\n"
+        f"🎉 참여 보상으로 {config.POINTS_JOIN}포인트가 지급됐어요.\n\n"
+        "나를 초대한 분의 @유저네임을 입력하면\n"
+        f"👉 나에게 +{config.POINTS_REFER}포인트 추가\n"
+        f"👉 초대한 분에게도 +{config.POINTS_INVITED}포인트 지급\n\n"
         "(예: @username)\n"
-        "없으면 /skip 입력"
+        "초대한 분이 없다면 /skip"
     )
     return WAITING_REFERRER
 
@@ -183,11 +173,12 @@ async def receive_referrer(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     user = update.effective_user
     text = update.message.text.strip()
 
-    # 자기 자신 방지
     clean = text.lstrip("@").lower()
+
+    # 자기 자신 방지
     if user.username and clean == user.username.lower():
         await update.message.reply_text(
-            "❌ 자기 자신을 추천인으로 입력할 수 없습니다.\n"
+            "❌ 자기 자신을 추천인으로 입력할 수 없어요.\n"
             "다른 @유저네임을 입력하거나 /skip 을 입력하세요."
         )
         return WAITING_REFERRER
@@ -196,7 +187,7 @@ async def receive_referrer(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     referrer = await db.get_user_by_username(text)
     if not referrer:
         await update.message.reply_text(
-            f"❌ @{clean} 는 이벤트에 참여하지 않은 유저입니다.\n"
+            f"❌ @{clean} 님은 아직 이벤트에 참여하지 않으셨어요.\n"
             "올바른 @유저네임을 입력하거나 /skip 을 입력하세요."
         )
         return WAITING_REFERRER
@@ -209,9 +200,9 @@ async def receive_referrer(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         invite_count = await db.get_referral_count(referrer["user_id"])
         await context.bot.send_message(
             referrer["user_id"],
-            f"🎉 @{user.username or user.full_name} 님이 당신의 초대로 참여했습니다!\n"
-            f"👉 +{config.POINTS_INVITED}pt 지급!\n"
-            f"(현재 누적: {referrer['points'] + config.POINTS_INVITED}pt)\n"
+            f"🎉 @{user.username or user.full_name} 님이 회원님의 초대로 참여했습니다!\n"
+            f"👉 +{config.POINTS_INVITED}pt 적립!\n"
+            f"현재 누적 포인트: {referrer['points'] + config.POINTS_INVITED}pt\n"
             f"📊 총 초대: {invite_count}명",
         )
     except Exception:
@@ -219,15 +210,18 @@ async def receive_referrer(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
     me = await db.get_user(user.id)
     await update.message.reply_text(
-        f"✅ 추천인 @{referrer['username']} 처리 완료!\n\n"
-        f"🎉 나에게 +{config.POINTS_REFER}pt 추가 지급!\n"
-        f"🎉 @{referrer['username']}에게도 +{config.POINTS_INVITED}pt 지급!\n\n"
-        f"🏆 내 현재 포인트: {me['points']}pt\n\n"
-        "친구에게 내 @username을 공유해서 함께 포인트를 쌓으세요!"
+        f"✅ 추천인 입력 완료!\n\n"
+        f"🎉 나에게 +{config.POINTS_REFER}pt 추가 적립!\n"
+        f"🎉 @{referrer['username']}님께도 +{config.POINTS_INVITED}pt 지급!\n\n"
+        f"🏆 현재 내 포인트: {me['points']}pt\n\n"
+        "내 @username을 친구에게 공유해서 함께 포인트를 쌓아보세요 🌙"
     )
     return ConversationHandler.END
 
 
+# ────────────────────────────────────────
+#  /skip
+# ────────────────────────────────────────
 async def skip_referrer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user     = update.effective_user
     existing = await db.get_user(user.id)
@@ -242,29 +236,50 @@ async def skip_referrer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     pts = existing["points"] if existing else config.POINTS_JOIN
     await update.message.reply_text(
         "⏭ 추천인 입력을 건너뛰었습니다.\n\n"
-        f"🏆 내 포인트: {pts}pt\n\n"
-        "친구에게 내 @username을 알려주면 둘 다 포인트를 받을 수 있어요 😊"
+        f"🏆 현재 내 포인트: {pts}pt\n\n"
+        "나중에라도 친구에게 내 @username을 알려주면\n"
+        "둘 다 포인트를 받을 수 있어요 😊"
     )
     return ConversationHandler.END
 
 
 # ────────────────────────────────────────
-#  /points
+#  /points — 내 포인트 확인 (채널 재확인 포함)
 # ────────────────────────────────────────
 async def points_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user     = update.effective_user
     existing = await db.get_user(user.id)
     if not existing:
-        await update.message.reply_text("아직 참여하지 않으셨어요. /start 로 시작하세요!")
+        await update.message.reply_text(
+            "아직 참여하지 않으셨어요.\n/start 로 이벤트를 시작해보세요!"
+        )
+        return
+
+    # 채널 재확인 — 추방/탈퇴 시 포인트 초기화
+    not_joined = await check_channels(user.id, context.bot)
+    if not_joined:
+        async with aiosqlite.connect(db.DB_PATH) as conn:
+            await conn.execute(
+                "UPDATE users SET points = 0 WHERE user_id = ?", (user.id,)
+            )
+            await conn.commit()
+        not_joined_text = "\n".join(f"• {ch}" for ch in not_joined)
+        await update.message.reply_text(
+            "⚠️ 채널 탈퇴/추방이 확인됐습니다.\n\n"
+            f"{not_joined_text}\n\n"
+            "❌ 포인트가 0으로 초기화됐습니다.\n"
+            "채널 재입장 후 /start 를 다시 입력해주세요."
+        )
         return
 
     invite_count = await db.get_referral_count(user.id)
     total        = await db.get_total_participants()
+    existing     = await db.get_user(user.id)  # 초기화 후 재조회
     await update.message.reply_text(
         f"📊 내 이벤트 현황\n"
         f"━━━━━━━━━━━━━━━\n"
-        f"👤 이름: {existing['full_name']}\n"
-        f"🏆 포인트: {existing['points']}pt\n"
+        f"👤 닉네임: {existing['full_name']}\n"
+        f"🏆 보유 포인트: {existing['points']}pt\n"
         f"👥 초대한 친구: {invite_count}명\n"
         f"━━━━━━━━━━━━━━━\n"
         f"📈 전체 참여자: {total}명"
@@ -272,7 +287,7 @@ async def points_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ────────────────────────────────────────
-#  /ranking
+#  /ranking — TOP 10 리더보드
 # ────────────────────────────────────────
 async def ranking_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     board = await db.get_leaderboard(10)
@@ -281,7 +296,7 @@ async def ranking_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     medals = ["🥇", "🥈", "🥉"] + ["🏅"] * 7
-    lines  = ["🏆 포인트 TOP 10\n━━━━━━━━━━━━━━━"]
+    lines  = ["🏆 포인트 랭킹 TOP 10\n━━━━━━━━━━━━━━━"]
     for i, row in enumerate(board):
         name = f"@{row['username']}" if row["username"] else row["full_name"]
         lines.append(
@@ -292,16 +307,75 @@ async def ranking_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ────────────────────────────────────────
-#  /help
+#  /invite — 내 초대 링크 안내
+# ────────────────────────────────────────
+async def invite_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user     = update.effective_user
+    existing = await db.get_user(user.id)
+    if not existing:
+        await update.message.reply_text(
+            "아직 참여하지 않으셨어요.\n/start 로 이벤트를 시작해보세요!"
+        )
+        return
+
+    if not user.username:
+        await update.message.reply_text(
+            "⚠️ 텔레그램 username이 설정되어 있지 않아요.\n"
+            "텔레그램 설정 → 사용자 이름 설정 후 다시 시도해주세요."
+        )
+        return
+
+    invite_count = await db.get_referral_count(user.id)
+    await update.message.reply_text(
+        f"📤 내 초대 정보\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"내 @username: @{user.username}\n"
+        f"👥 지금까지 초대한 친구: {invite_count}명\n"
+        f"🏆 보유 포인트: {existing['points']}pt\n"
+        f"━━━━━━━━━━━━━━━\n\n"
+        "친구에게 아래 메시지를 공유하세요!\n\n"
+        f"👇👇👇\n"
+        f"🌙 Midnight Network 이벤트 참여하고 포인트 받자!\n"
+        f"@midnightkor_friend_bot 에서 /start 입력 후\n"
+        f"추천인 @{user.username} 입력하면 둘 다 10pt 지급!"
+    )
+
+
+# ────────────────────────────────────────
+#  /event — 이벤트 정보
+# ────────────────────────────────────────
+async def event_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    channel_lines = "\n".join(
+        f"{i+1}️⃣ {label}: {url}"
+        for i, (label, url) in enumerate(config.CHANNEL_INFO)
+    )
+    await update.message.reply_text(
+        f"{config.EVENT_TITLE}\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"📅 기간: {config.EVENT_PERIOD}\n"
+        f"🎁 리워드: {config.EVENT_REWARD}\n\n"
+        f"✅ 참여 채널\n{channel_lines}\n\n"
+        f"💡 포인트 지급 방식\n"
+        f"• 참여만 해도: +{config.POINTS_JOIN}pt\n"
+        f"• 추천인 입력 시: +{config.POINTS_REFER}pt\n"
+        f"• 친구 초대 성공 시: +{config.POINTS_INVITED}pt"
+    )
+
+
+# ────────────────────────────────────────
+#  /help — 명령어 목록
 # ────────────────────────────────────────
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "📖 사용 가능한 명령어\n\n"
-        "/start   — 이벤트 참여 시작\n"
-        "/points  — 내 포인트 확인\n"
-        "/ranking — 포인트 랭킹 TOP 10\n"
-        "/skip    — 추천인 입력 건너뛰기\n"
-        "/help    — 이 도움말"
+        "🌙 사용 가능한 명령어\n"
+        "━━━━━━━━━━━━━━━\n"
+        "/start    — 이벤트 참여 시작\n"
+        "/points   — 내 포인트 확인\n"
+        "/ranking  — 포인트 랭킹 TOP 10\n"
+        "/invite   — 내 초대 정보 + 공유 메시지\n"
+        "/event    — 이벤트 상세 정보\n"
+        "/skip     — 추천인 입력 건너뛰기\n"
+        "/help     — 명령어 목록"
     )
 
 
@@ -340,6 +414,8 @@ def main():
     app.add_handler(CallbackQueryHandler(verify_join_callback, pattern="^verify_join$"))
     app.add_handler(CommandHandler("points",  points_cmd))
     app.add_handler(CommandHandler("ranking", ranking_cmd))
+    app.add_handler(CommandHandler("invite",  invite_cmd))
+    app.add_handler(CommandHandler("event",   event_cmd))
     app.add_handler(CommandHandler("help",    help_cmd))
 
     logger.info("봇 시작!")
