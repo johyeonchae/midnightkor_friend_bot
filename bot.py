@@ -1,7 +1,9 @@
 # ─────────────────────────────────────────
-#  bot.py  —  최종본
+#  bot.py  —  최종 수정본
 # ─────────────────────────────────────────
 import logging
+import os  # 추가
+import csv # 추가
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
@@ -25,6 +27,12 @@ logger = logging.getLogger(__name__)
 
 WAITING_REFERRER = 1
 
+# ────────────────────────────────────────
+#  [추가] 우대 대상자 체크 로직
+# ────────────────────────────────────────
+def is_loyalty_user(username: str) -> bool:
+    if not username: return False
+    return username.lstrip("@").lower() in config.LOYALTY_USERS
 
 # ────────────────────────────────────────
 #  채널 가입 확인
@@ -140,8 +148,8 @@ async def _register_and_greet(user, context) -> int:
         f"📅 기간: {config.EVENT_PERIOD}\n"
         f"🎁 리워드: {config.EVENT_REWARD}\n\n"
         f"🎉 {full_name}님, 환영합니다!\n"
-        f"참여 보상으로 {config.POINTS_JOIN}포인트가 지급됐어요.\n\n"
-        f"친구를 초대하면 나와 친구 모두 {config.POINTS_INVITED}포인트씩 추가 지급됩니다.\n"
+        f"참여 보상으로 {config.POINTS_JOIN}pt가 지급됐어요.\n\n"
+        f"친구를 초대하면 나와 친구 모두 {config.POINTS_INVITED}pt씩 추가 지급됩니다.\n"
         "포인트는 미드나잇 코리아 캠페인에 누적되며 종료 후 리워드로 환산됩니다.\n\n"
         "⚠️ 이벤트 종료 전까지 채널에 남아 계셔야 포인트가 유지됩니다. 채널을 나가면 본인과 추천인 포인트가 모두 차감됩니다!"
     )
@@ -150,12 +158,12 @@ async def _register_and_greet(user, context) -> int:
     await context.bot.send_message(
         user.id,
         f"👥 나를 초대한 분의 @유저네임을 입력하면\n"
-        f"👉 나에게 +{config.POINTS_REFER}포인트 추가\n"
-        f"👉 초대한 분에게도 +{config.POINTS_INVITED}포인트 지급\n\n"
+        f"👉 나에게 +{config.POINTS_REFER}pt 추가\n"
+        f"👉 초대한 분에게도 +{config.POINTS_INVITED}pt 지급\n\n"
         "(예: @username)\n"
         "초대한 분이 없다면 /skip"
     )
-    return WAITING_REFERRER
+    return WAITING_REFER_ER
 
 
 # ────────────────────────────────────────
@@ -187,16 +195,23 @@ async def receive_referrer(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     # 포인트 지급 + 관계 저장
     await db.set_referral_done(user.id, referrer["user_id"])
 
+    # [추가] 추천인(Inviter)이 우대 대상자인 경우 보너스 체크
+    bonus_pt = await db.process_loyalty_bonus(referrer["user_id"], referrer["username"])
+
     # 추천인에게 DM 알림
     try:
         invite_count = await db.get_referral_count(referrer["user_id"])
-        await context.bot.send_message(
-            referrer["user_id"],
+        msg = (
             f"🎉 @{user.username or user.full_name} 님이 회원님의 초대로 참여했습니다!\n"
             f"👉 +{config.POINTS_INVITED}pt 적립!\n"
-            f"현재 누적 포인트: {referrer['points'] + config.POINTS_INVITED}pt\n"
-            f"📊 총 초대: {invite_count}명",
         )
+        if bonus_pt > 0:
+            msg += f"🎁 [우대 혜택] 초대 목표 달성 보너스 {bonus_pt}pt 추가 적립!\n"
+            
+        msg += f"현재 누적 포인트: {referrer['points'] + config.POINTS_INVITED + bonus_pt}pt\n"
+        msg += f"📊 총 초대: {invite_count}명"
+
+        await context.bot.send_message(referrer["user_id"], msg)
     except Exception:
         pass
 
@@ -313,19 +328,26 @@ async def invite_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     invite_count = await db.get_referral_count(user.id)
-    await update.message.reply_text(
-        f"📤 내 초대 정보\n"
-        f"━━━━━━━━━━━━━━━\n"
-        f"내 @username: @{user.username}\n"
-        f"👥 지금까지 초대한 친구: {invite_count}명\n"
-        f"🏆 보유 포인트: {existing['points']}pt\n"
-        f"━━━━━━━━━━━━━━━\n\n"
-        "친구에게 아래 메시지를 공유하세요!\n\n"
-        f"👇👇👇\n"
-        f"🌙 Midnight Network 이벤트 참여하고 포인트 받자!\n"
-        f"@midnightkor_friend_bot 에서 /start 입력 후\n"
-        f"추천인 @{user.username} 입력하면 둘 다 10pt 지급!"
-    )
+    
+    # [추가] 우대 대상자 여부 확인 후 문구 구성
+    msg = f"📤 내 초대 정보\n━━━━━━━━━━━━━━━\n"
+    msg += f"내 @username: @{user.username}\n"
+    
+    if is_loyalty_user(user.username):
+        msg += "\n🌟 **[특별 우대 대상자 혜택]**\n"
+        msg += "초대 달성 시마다 pt가 자동 추가됩니다!\n"
+        msg += "• 1명(+100pt) / 3명(+300pt) / 5명(+500pt) / 10명(+1000pt)\n"
+        
+    msg += f"\n👥 지금까지 초대한 친구: {invite_count}명\n"
+    msg += f"🏆 보유 포인트: {existing['points']}pt\n"
+    msg += "━━━━━━━━━━━━━━━\n\n"
+    msg += "친구에게 아래 메시지를 공유하세요!\n\n"
+    msg += "👇👇👇\n"
+    msg += f"🌙 Midnight Network 이벤트 참여하고 포인트 받자!\n"
+    msg += f"@midnightkor_friend_bot 에서 /start 입력 후\n"
+    msg += f"추천인 @{user.username} 입력하면 둘 다 {config.POINTS_INVITED}pt 지급!"
+
+    await update.message.reply_text(msg, parse_mode="Markdown")
 
 
 # ────────────────────────────────────────
@@ -345,7 +367,8 @@ async def event_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"💡 포인트 지급 방식\n"
         f"• 참여만 해도: +{config.POINTS_JOIN}pt\n"
         f"• 추천인 입력 시: +{config.POINTS_REFER}pt\n"
-        f"• 친구 초대 성공 시: +{config.POINTS_INVITED}pt"
+        f"• 친구 초대 성공 시: +{config.POINTS_INVITED}pt\n"
+        f"🎁 [이전 참여자 우대] 초대 마일스톤 달성 시 추가 보너스 지급!" # 한 줄 추가
     )
 
 
