@@ -43,6 +43,14 @@ async def init_db():
                 UNIQUE(inviter_id, invitee_id)
             )
         """)
+        # [추가] 보너스 중복 수령 방지 테이블
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS loyalty_claims (
+                user_id   BIGINT NOT NULL,
+                milestone INTEGER NOT NULL,
+                PRIMARY KEY (user_id, milestone)
+            )
+        """)
 
 
 async def get_user(user_id: int) -> dict | None:
@@ -162,3 +170,30 @@ async def get_leaderboard(limit: int = 10) -> list[dict]:
             limit,
         )
         return [dict(r) for r in rows]
+
+# ... (기존 코드 맨 마지막 줄 아래에 추가)
+
+async def process_loyalty_bonus(user_id: int, username: str):
+    """우대 대상자인 경우 마일스톤 체크 및 pt 지급"""
+    import config
+    if not username or username.lower() not in config.LOYALTY_USERS:
+        return 0
+
+    pool = await get_pool()
+    total_awarded = 0
+    async with pool.acquire() as conn:
+        # 현재 초대 인원 조회
+        count = await conn.fetchval("SELECT COUNT(*) FROM referrals WHERE inviter_id = $1", user_id)
+        
+        for milestone, bonus in config.LOYALTY_BONUS.items():
+            if count >= milestone:
+                exists = await conn.fetchval(
+                    "SELECT 1 FROM loyalty_claims WHERE user_id=$1 AND milestone=$2", 
+                    user_id, milestone
+                )
+                if not exists:
+                    async with conn.transaction():
+                        await conn.execute("INSERT INTO loyalty_claims VALUES ($1, $2)", user_id, milestone)
+                        await conn.execute("UPDATE users SET points = points + $1 WHERE user_id = $2", bonus, user_id)
+                        total_awarded += bonus
+    return total_awarded
