@@ -2,7 +2,6 @@
 #  bot.py  —  최종본
 # ─────────────────────────────────────────
 import logging
-import aiosqlite
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
@@ -227,11 +226,11 @@ async def skip_referrer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     existing = await db.get_user(user.id)
 
     if existing and not existing["referral_done"]:
-        async with aiosqlite.connect(db.DB_PATH) as conn:
+        pool = await db.get_pool()
+        async with pool.acquire() as conn:
             await conn.execute(
-                "UPDATE users SET referral_done = 1 WHERE user_id = ?", (user.id,)
+                "UPDATE users SET referral_done = 1 WHERE user_id = $1", user.id
             )
-            await conn.commit()
 
     pts = existing["points"] if existing else config.POINTS_JOIN
     await update.message.reply_text(
@@ -258,11 +257,7 @@ async def points_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 채널 재확인 — 추방/탈퇴 시 포인트 초기화
     not_joined = await check_channels(user.id, context.bot)
     if not_joined:
-        async with aiosqlite.connect(db.DB_PATH) as conn:
-            await conn.execute(
-                "UPDATE users SET points = 0 WHERE user_id = ?", (user.id,)
-            )
-            await conn.commit()
+        await db.reset_points(user.id)
         not_joined_text = "\n".join(f"• {ch}" for ch in not_joined)
         await update.message.reply_text(
             "⚠️ 채널 탈퇴/추방이 확인됐습니다.\n\n"
