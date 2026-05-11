@@ -140,21 +140,35 @@ async def _register_and_greet(user, context) -> int:
     full_name = user.full_name or str(user.id)
     await db.register_user(user.id, username, full_name)
 
+    # ────────────────────────────────────────
+    #  [수정] 가입 시 우대 대상자 전용 환영 문구 추가
+    # ────────────────────────────────────────
+    loyalty_text = ""
+    if is_loyalty_user(username):
+        loyalty_text = (
+            "🌟 **[특별 우대 대상자 선정 안내]**\n"
+            "이전 이벤트 참여 기록이 확인되어 특별 우대 대상으로 등록되셨습니다!\n"
+            "친구 초대 달성 시마다 추가 보너스 pt가 자동 지급됩니다. (최대 1,900pt 추가 보상)\n"
+            "━━━━━━━━━━━━━━━\n\n"
+        )
+
     # 메시지 1 — 이벤트 소개 + 환영
     await context.bot.send_message(
         user.id,
         f"{config.EVENT_TITLE}\n"
         f"━━━━━━━━━━━━━━━\n"
+        f"{loyalty_text}"  # 우대 대상자일 경우 여기에 특별 문구가 삽입됩니다.
         f"📅 기간: {config.EVENT_PERIOD}\n"
         f"🎁 리워드: {config.EVENT_REWARD}\n\n"
         f"🎉 {full_name}님, 환영합니다!\n"
         f"참여 보상으로 {config.POINTS_JOIN}pt가 지급됐어요.\n\n"
         f"친구를 초대하면 나와 친구 모두 {config.POINTS_INVITED}pt씩 추가 지급됩니다.\n"
         "포인트는 미드나잇 코리아 캠페인에 누적되며 종료 후 리워드로 환산됩니다.\n\n"
-        "⚠️ 이벤트 종료 전까지 채널에 남아 계셔야 포인트가 유지됩니다. 채널을 나가면 본인과 추천인 포인트가 모두 차감됩니다!"
+        "⚠️ 이벤트 종료 전까지 채널에 남아 계셔야 포인트가 유지됩니다. 채널을 나가면 본인과 추천인 포인트가 모두 차감됩니다!",
+        parse_mode="Markdown" # 볼드체(**) 적용을 위해 추가
     )
 
-    # 메시지 2 — 추천인 입력 요청
+    # 메시지 2 — 추천인 입력 요청 (기존과 동일)
     await context.bot.send_message(
         user.id,
         f"👥 나를 초대한 분의 @유저네임을 입력하면\n"
@@ -163,7 +177,7 @@ async def _register_and_greet(user, context) -> int:
         "(예: @username)\n"
         "초대한 분이 없다면 /skip"
     )
-    return WAITING_REFER_ER
+    return WAITING_REFERRER
 
 
 # ────────────────────────────────────────
