@@ -509,7 +509,7 @@ async def ranking_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             name = name[:18] + "…"
         lines.append(
             f"{medals[i]} {i+1}위 {name} — "
-            f"{row['points']}pt"
+            f"{row['points']}pt({row['invite_count']}명)"
         )
     await update.message.reply_text("\n".join(lines))
 
