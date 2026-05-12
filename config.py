@@ -6,6 +6,9 @@ import os, csv
 # BotFather에서 받은 토큰
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "여기에_봇토큰_입력")
 
+# 봇 username (딥링크 생성에 사용)
+BOT_USERNAME = "midnightkor_friend_bot"
+
 # 가입 확인할 채널/그룹 목록 (봇을 관리자로 추가해야 함)
 REQUIRED_CHANNELS = [
     "@midnight_kor",
@@ -23,12 +26,16 @@ POINTS_JOIN    = 100   # /start 기본 지급
 POINTS_REFER   = 100   # 추천인 입력 시 본인 추가 지급
 POINTS_INVITED = 100   # 추천인에게 지급
 
+# 공식 추천인 (한국 공지 채널 핸들)
+# 추천한 친구가 없을 때 이 핸들을 입력하면 본인만 POINTS_REFER 지급
+OFFICIAL_REFERRER = "midnight_kor"
+
 # 이벤트 정보 (메시지에 표시됨)
 EVENT_TITLE  = "🌙 Midnight Network 한국 친구초대 이벤트"
 EVENT_PERIOD = "2026-05-11 ~ 2026-05-25 23:59 KST"
 EVENT_REWARD = "총 상금 3천만원 규모 미드나잇 코리아 포인트 캠페인"
 
-# [추가] 이전 이벤트 참여자 우대 보상 (명수: pt)
+# 이전 이벤트 참여자 우대 보상 (명수: pt)
 LOYALTY_BONUS = {1: 100, 3: 300, 5: 500, 10: 1000}
 
 def load_loyalty_users():
