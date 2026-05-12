@@ -427,13 +427,9 @@ async def referral_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
 
 # ────────────────────────────────────────
-#  /points — 내 포인트 확인
+#  /points — 내 포인트 확인 (그룹/DM 둘 다 가능)
 # ────────────────────────────────────────
 async def points_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_private_chat(update):
-        await warn_private_only(update)
-        return
-
     user = update.effective_user
     existing = await db.get_user(
         user.id, current_username=user.username, current_full_name=user.full_name
@@ -444,22 +440,26 @@ async def points_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # 채널 재확인 — 추방/탈퇴 시 포인트 초기화
+    # 채널 가입 상태 확인 — 경고만 표시 (실제 리셋은 이벤트 종료 시 일괄 처리)
     not_joined = await check_channels(user.id, context.bot)
+    warning = ""
     if not_joined:
-        await db.reset_points(user.id)
         not_joined_text = "\n".join(f"• {ch}" for ch in not_joined)
-        await update.message.reply_text(
-            "⚠️ 채널 탈퇴/추방이 확인됐습니다.\n\n"
-            f"{not_joined_text}\n\n"
-            "❌ 포인트가 0으로 초기화됐습니다.\n"
-            "채널 재입장 후 /start 를 다시 입력해주세요."
+        channel_links = "\n".join(
+            f"  {url}" for label, url in config.CHANNEL_INFO
+            if label in not_joined
         )
-        return
+        warning = (
+            "⚠️ 채널 미가입 상태입니다!\n"
+            f"{not_joined_text}\n\n"
+            "🔻 이벤트 종료 시점에 미가입 상태이면 포인트가 무효 처리됩니다.\n"
+            "다시 가입해주세요:\n"
+            f"{channel_links}\n"
+            "━━━━━━━━━━━━━━━\n\n"
+        )
 
     invite_count = await db.get_referral_count(user.id)
     total = await db.get_total_participants()
-    existing = await db.get_user(user.id)  # 최신 상태 재조회
 
     loyalty_info = ""
     if is_loyalty_user(user.username):
@@ -474,6 +474,7 @@ async def points_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     referrer_status = "완료 ✅" if existing["claimed_referrer_bonus"] else "미입력 (/referral 로 입력 가능)"
 
     await update.message.reply_text(
+        f"{warning}"
         f"📊 내 이벤트 현황\n"
         f"━━━━━━━━━━━━━━━\n"
         f"{loyalty_info}"
