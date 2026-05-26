@@ -49,6 +49,23 @@ async def warn_private_only(update: Update):
     )
 
 
+async def reject_if_frozen(update: Update) -> bool:
+    """이벤트 동결 상태면 안내 메시지 출력 후 True 반환. 호출부는 True면 즉시 종료."""
+    if not config.EVENT_FROZEN:
+        return False
+    await update.message.reply_text(
+        "⏸️ 이벤트 종료 안내\n"
+        "━━━━━━━━━━━━━━━\n"
+        "미드나잇 코리아 친구초대 이벤트가 종료되어\n"
+        "더 이상 신규 포인트 적립이 불가능합니다.\n\n"
+        "✅ 누적 포인트는 안전하게 보관되며\n"
+        "   /points 로 확인 가능합니다.\n"
+        "✅ 최종 보상은 추후 공지됩니다.\n\n"
+        "감사합니다 🌙"
+    )
+    return True
+
+
 def parse_deep_link_referrer(args, current_user_id: int) -> int | None:
     """딥링크 인자에서 추천인 ID 파싱. 형식: ref{user_id}"""
     if not args:
@@ -123,7 +140,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             f"📎 추천인 입력: {status}\n"
         )
         # 아직 추천인 보너스 못 받은 사람 (예: 그룹에서 잘못 등록된 유저, 옛날 /skip 한 유저)
-        if not existing["claimed_referrer_bonus"]:
+        # — 단, 이벤트 동결 중이면 안내 안 함
+        if not existing["claimed_referrer_bonus"] and not config.EVENT_FROZEN:
             msg += (
                 f"\n💡 추천인을 아직 입력하지 않으셨네요!\n"
                 f"/referral 명령어로 입력 시 +{config.POINTS_REFER}pt 추가 적립됩니다.\n"
@@ -131,6 +149,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         msg += "\n내 @username을 친구에게 알려 함께 포인트를 쌓아보세요!"
 
         await update.message.reply_text(msg)
+        return ConversationHandler.END
+
+    # ⏸️ 신규 가입 차단 (이벤트 동결 중)
+    if await reject_if_frozen(update):
+        context.user_data.pop("pending_referrer_id", None)
         return ConversationHandler.END
 
     # 채널 가입 확인
@@ -186,6 +209,18 @@ async def verify_join_callback(update: Update, context: ContextTypes.DEFAULT_TYP
             "📌 채널/그룹 입장 후 입장 인증(더하기 문제)을 완료한 뒤\n"
             "다시 버튼을 눌러주세요!",
             reply_markup=join_buttons(),
+        )
+        return ConversationHandler.END
+
+    # ⏸️ 신규 가입 차단 (이벤트 동결 중)
+    if config.EVENT_FROZEN:
+        await query.edit_message_text(
+            "⏸️ 이벤트 종료 안내\n"
+            "━━━━━━━━━━━━━━━\n"
+            "미드나잇 코리아 친구초대 이벤트가 종료되어\n"
+            "더 이상 신규 참여가 불가능합니다.\n\n"
+            "최종 보상은 추후 공지됩니다.\n\n"
+            "감사합니다 🌙"
         )
         return ConversationHandler.END
 
@@ -287,6 +322,10 @@ async def _register_and_greet(user, context) -> int:
 async def receive_referrer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if not is_private_chat(update):
         return WAITING_REFERRER
+
+    # ⏸️ 추천인 입력 차단 (이벤트 동결 중) — 동결 전에 /start나 /referral 했던 stale 상태 차단
+    if await reject_if_frozen(update):
+        return ConversationHandler.END
 
     user = update.effective_user
     text = update.message.text.strip()
@@ -394,6 +433,10 @@ async def skip_referrer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 async def referral_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if not is_private_chat(update):
         await warn_private_only(update)
+        return ConversationHandler.END
+
+    # ⏸️ 추천인 입력 차단 (이벤트 동결 중)
+    if await reject_if_frozen(update):
         return ConversationHandler.END
 
     user = update.effective_user
