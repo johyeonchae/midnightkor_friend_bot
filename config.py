@@ -30,6 +30,10 @@ POINTS_INVITED = 100   # 추천인에게 지급
 # 추천한 친구가 없을 때 이 핸들을 입력하면 본인만 POINTS_REFER 지급
 OFFICIAL_REFERRER = "midnight_kor"
 
+# 이벤트 동결 스위치 — True 시 신규 포인트 적립 중단 (조회는 정상)
+# Railway 대시보드 → Variables 에서 EVENT_FROZEN=true 로 설정하면 적용
+EVENT_FROZEN = os.environ.get("EVENT_FROZEN", "false").lower() in ("true", "1", "yes", "on")
+
 # 이벤트 정보 (메시지에 표시됨)
 EVENT_TITLE  = "🌙 Midnight Network 한국 친구초대 이벤트"
 EVENT_PERIOD = "2026-05-11 ~ 2026-05-25 23:59 KST"
