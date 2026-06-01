@@ -34,6 +34,11 @@ OFFICIAL_REFERRER = "midnight_kor"
 # Railway 대시보드 → Variables 에서 EVENT_FROZEN=true 로 설정하면 적용
 EVENT_FROZEN = os.environ.get("EVENT_FROZEN", "false").lower() in ("true", "1", "yes", "on")
 
+# 관리자 텔레그램 user_id (audit 등 관리 명령 사용 권한)
+# Railway Variables 에 ADMIN_USER_ID=숫자 형태로 설정
+# 본인 user_id 확인 방법: 텔레그램에서 @userinfobot 에게 메시지 보내면 알려줌
+ADMIN_USER_ID = int(os.environ.get("ADMIN_USER_ID", "0"))
+
 # 이벤트 정보 (메시지에 표시됨)
 EVENT_TITLE  = "🌙 Midnight Network 한국 친구초대 이벤트"
 EVENT_PERIOD = "2026-05-11 ~ 2026-05-25 23:59 KST"
