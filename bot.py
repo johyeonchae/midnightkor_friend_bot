@@ -4,7 +4,9 @@
 import logging
 import os
 import csv
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+import asyncio
+import io
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -631,6 +633,92 @@ async def event_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ────────────────────────────────────────
+#  /audit — 관리자 전용: 전체 유저 채널 가입 점검 + CSV 출력
+# ────────────────────────────────────────
+async def audit_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+
+    # 관리자만 사용 가능 (비관리자는 조용히 무시)
+    if not config.ADMIN_USER_ID or user.id != config.ADMIN_USER_ID:
+        return
+
+    if not is_private_chat(update):
+        await update.message.reply_text("관리자 명령은 DM에서만 사용 가능합니다.")
+        return
+
+    # 전체 유저 조회
+    pool = await db.get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """SELECT u.user_id, u.username, u.full_name, u.points,
+                      u.referred_by, u.claimed_referrer_bonus,
+                      COUNT(r.id) AS invite_count
+               FROM users u
+               LEFT JOIN referrals r ON r.inviter_id = u.user_id
+               GROUP BY u.user_id
+               ORDER BY u.points DESC"""
+        )
+
+    total = len(rows)
+    await update.message.reply_text(
+        f"⏳ 전체 유저 채널 가입 점검 시작 — 총 {total}명\n"
+        f"약 {total // 5}초 소요. 50명마다 진행 보고합니다."
+    )
+
+    results = []
+    kicked = 0
+    for i, row in enumerate(rows):
+        not_joined = await check_channels(row["user_id"], context.bot)
+        is_in = len(not_joined) == 0
+        if not is_in:
+            kicked += 1
+        results.append({
+            "user_id": row["user_id"],
+            "username": row["username"] or "",
+            "full_name": (row["full_name"] or "").replace(",", " ").replace("\n", " "),
+            "points": row["points"],
+            "invite_count": row["invite_count"],
+            "referred_by": row["referred_by"] or "",
+            "claimed_referrer_bonus": "Y" if row["claimed_referrer_bonus"] else "N",
+            "still_in_channels": "Y" if is_in else "N",
+            "missing_channels": ";".join(not_joined),
+        })
+
+        # 진행 보고 (50명마다)
+        if (i + 1) % 50 == 0:
+            await update.message.reply_text(
+                f"진행: {i+1}/{total} (현재까지 이탈자: {kicked}명)"
+            )
+
+        # Telegram 레이트 리밋 방지
+        await asyncio.sleep(0.1)
+
+    # CSV 생성 (Excel 한글 호환 위해 UTF-8 BOM)
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=list(results[0].keys()))
+    writer.writeheader()
+    writer.writerows(results)
+    csv_bytes = ("\ufeff" + buf.getvalue()).encode("utf-8")
+
+    bio = io.BytesIO(csv_bytes)
+    bio.name = "audit_result.csv"
+
+    await context.bot.send_document(
+        chat_id=user.id,
+        document=InputFile(bio, filename="audit_result.csv"),
+        caption=(
+            f"✅ 점검 완료\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"전체: {total}명\n"
+            f"가입 유지: {total - kicked}명\n"
+            f"추방/탈퇴: {kicked}명\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"still_in_channels=Y 인 유저만 최종 보상 대상으로 필터링하시면 됩니다."
+        ),
+    )
+
+
+# ────────────────────────────────────────
 #  /help — 명령어 목록
 # ────────────────────────────────────────
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -694,6 +782,7 @@ def main():
     app.add_handler(CommandHandler("ranking", ranking_cmd))
     app.add_handler(CommandHandler("invite",  invite_cmd))
     app.add_handler(CommandHandler("event",   event_cmd))
+    app.add_handler(CommandHandler("audit",   audit_cmd))
     app.add_handler(CommandHandler("help",    help_cmd))
     app.add_error_handler(error_handler)
 
