@@ -61,9 +61,9 @@ def format_settlement_msg(data: dict) -> str:
         if data.get('ama_code_pt'):
             msg += f"🎤 AMA 코드 입력: {data['ama_code_pt']:,}pt\n"
         if data.get('holder_pt'):
-            msg += f"💎 홀더 인증: {data['holder_pt']:,}pt\n"
+            msg += f"💎 네이버페이 홀더 인증: {data['holder_pt']:,}pt\n"
         if data.get('kol_pt'):
-            msg += f"📣 홀더 인증 (KOL): {data['kol_pt']:,}pt\n"
+            msg += f"📣 네이버페이 홀더 인증 (KOL): {data['kol_pt']:,}pt\n"
         msg += "\n━━━━━━━━━━━━━━━━━━\n"
     
     msg += f"✨ 최종 포인트: {total_pt:,}pt\n"
@@ -78,9 +78,9 @@ def format_settlement_msg(data: dict) -> str:
     if rew_total > 0:
         msg += "💰 중간 정산 보상\n"
         if rew_pokem:
-            msg += f"  • 포캠 확정: ${rew_pokem:.0f}\n"
+            msg += f"  • 선착순 확정: ${rew_pokem:.0f}\n"
         if rew_ama:
-            msg += f"  • AMA 확정: ${rew_ama:.0f}\n"
+            msg += f"  • 선착순 AMA 확정: ${rew_ama:.0f}\n"
         if rew_bracket:
             msg += f"  • 포인트 구간: ${rew_bracket:.0f}\n"
         msg += f"💵 받으실 NIGHT토큰 에어드랍: ${rew_total:.2f}\n\n"
