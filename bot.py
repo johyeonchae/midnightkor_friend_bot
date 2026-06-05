@@ -20,6 +20,7 @@ from telegram.error import BadRequest, Forbidden
 
 import config
 import database as db
+from mypoints_handler import register_reward_handler
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -784,6 +785,7 @@ def main():
     app.add_handler(CommandHandler("event",   event_cmd))
     app.add_handler(CommandHandler("audit",   audit_cmd))
     app.add_handler(CommandHandler("help",    help_cmd))
+    register_reward_handler(app) 
     app.add_error_handler(error_handler)
 
     logger.info("봇 시작!")
