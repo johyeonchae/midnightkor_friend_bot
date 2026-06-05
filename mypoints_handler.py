@@ -83,7 +83,7 @@ def format_settlement_msg(data: dict) -> str:
             msg += f"  • AMA 확정: ${rew_ama:.0f}\n"
         if rew_bracket:
             msg += f"  • 포인트 구간: ${rew_bracket:.0f}\n"
-        msg += f"💵 총 지급액: ${rew_total:.2f}\n\n"
+        msg += f"💵 받으실 NIGHT토큰 에어드랍: ${rew_total:.2f}\n\n"
     else:
         msg += "💪 이번 중간정산에는 아쉽게 보상에 포함되지 않았지만,\n"
         msg += "남은 포인트 캠페인 동안 이벤트에 더욱 열심히 참여하셔서\n"
