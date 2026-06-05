@@ -115,5 +115,4 @@ async def reward_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def register_reward_handler(app: Application):
     """bot.py 의 main() 에서 호출"""
     app.add_handler(CommandHandler("reward", reward_cmd))
-    app.add_handler(CommandHandler("보상", reward_cmd))
-    logger.info("✅ /reward, /보상 핸들러 등록 완료")
+    logger.info("✅ /reward 핸들러 등록 완료")
