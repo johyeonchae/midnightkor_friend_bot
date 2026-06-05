@@ -63,7 +63,7 @@ def format_settlement_msg(data: dict) -> str:
         if data.get('holder_pt'):
             msg += f"💎 홀더 인증: {data['holder_pt']:,}pt\n"
         if data.get('kol_pt'):
-            msg += f"📣 KOL 단계 신규: {data['kol_pt']:,}pt\n"
+            msg += f"📣 홀더 인증 (KOL): {data['kol_pt']:,}pt\n"
         msg += "\n━━━━━━━━━━━━━━━━━━\n"
     
     msg += f"✨ 최종 포인트: {total_pt:,}pt\n"
@@ -86,11 +86,10 @@ def format_settlement_msg(data: dict) -> str:
         msg += f"💵 총 지급액: ${rew_total:.2f}\n\n"
     else:
         msg += "💪 이번 중간정산에는 아쉽게 보상에 포함되지 않았지만,\n"
-        msg += "남은 포인트 캠페인 동안 조금만 더 참여하시면\n"
-        msg += "다음에는 충분히 보상을 받으실 수 있어요!\n\n"
-        msg += "앞으로 미드나잇 코리아에서 개최하는 이벤트에 적극 참여해보세요 🌙\n\n"
+        msg += "남은 포인트 캠페인 동안 이벤트에 더욱 열심히 참여하셔서\n"
+        msg += "NIGHT 에어드랍 많이 받아가세요!\n\n"
+        msg += "앞으로도 미드나잇 코리아에 많은 관심과 참여부탁드리겠습니다 🌙\n\n"
     
-    msg += "감사합니다 🌙"
     return msg
 
 
