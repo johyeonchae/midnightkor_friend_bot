@@ -134,8 +134,8 @@ def format_settlement_msg(data: dict) -> str:
     if addr and chain and chain != '주소없음':
         masked = html.escape(mask_address(addr))
         chain_safe = html.escape(str(chain))
-        msg += f"📤 <b>지급 주소 ({chain_safe})</b>\n"
-        msg += f"<code>{masked}</code>\n\n"
+        # msg += f"📤 <b>지급 주소 ({chain_safe})</b>\n"
+        # msg += f"<code>{masked}</code>\n\n"
     else:
         msg += "⚠️ <b>지갑 주소가 등록되지 않았습니다.</b>\n"
         msg += "아래 폼에서 지갑 주소를 제출해주세요.\n\n"
