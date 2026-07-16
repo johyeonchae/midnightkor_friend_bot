@@ -163,7 +163,9 @@ async def reward_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "📭 정산 내역이 없습니다.\n\n"
             "캠페인에 참여하지 않으셨거나, "
             "텔레그램 핸들 변경 등의 사유로 조회되지 않을 수 있어요.\n\n"
-            "문의: @midnight_kor_chat"
+            f'🔗<a href="{WALLET_FORM_URL}">{FORM_LINK_TEXT}</a>',
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
         )
         return
     
