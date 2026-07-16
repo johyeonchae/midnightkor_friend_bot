@@ -50,7 +50,7 @@ def lookup_settlement(user) -> dict | None:
     return None
 
 
-pythondef mask_address(addr: str) -> str:
+def mask_address(addr: str) -> str:
     """앞 8 / 뒤 6 자리로 마스킹"""
     if not addr:
         return ''
