@@ -50,14 +50,14 @@ def lookup_settlement(user) -> dict | None:
     return None
 
 
-def mask_address(addr: str) -> str:
-    """앞 6 / 뒤 6 자리로 마스킹"""
+pythondef mask_address(addr: str) -> str:
+    """앞 8 / 뒤 6 자리로 마스킹"""
     if not addr:
         return ''
     a = str(addr).strip()
-    if len(a) <= 14:
+    if len(a) <= 16:
         return a
-    return f"{a[:6]}...{a[-6:]}"
+    return f"{a[:8]}...{a[-6:]}"
 
 
 def format_settlement_msg(data: dict) -> str:
