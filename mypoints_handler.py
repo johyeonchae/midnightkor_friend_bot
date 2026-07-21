@@ -153,8 +153,8 @@ def format_settlement_msg(data: dict) -> str:
     msg += f'🔗<a href="{WALLET_FORM_URL}">{FORM_LINK_TEXT}</a>\n'
     
     # ─── Disclaimer (이탤릭) ───
-    msg += "<i>※ 지급 당시 $NIGHT 기준이며, "
-    msg += "지급 시점 및 상황에 따라 일부 가격 변동이 있을 수 있습니다.</i>"
+    msg += "<i>※ $NIGHT 지급 시점 및 상황에 따라 "
+    msg += "수량 및 가격 변동이 있을 수 있습니다.</i>"
     
     return msg
 
